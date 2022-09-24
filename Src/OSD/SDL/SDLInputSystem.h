@@ -43,6 +43,16 @@ struct SDLKeyMapStruct
 	SDL_Scancode sdlKey;
 };
 
+struct SDLMseState
+{
+	LONG x;
+	LONG y;
+	LONG z;
+	LONG wheelDelta;
+	SHORT wheelDir;
+	USHORT buttons;
+};
+
 /*
  * Input system that uses SDL.
  */
@@ -57,7 +67,8 @@ private:
 	// Vector to keep track of attached joysticks
 	std::vector<SDL_Joystick*> m_joysticks;
 
-	// Vector of joystick details
+	// Vector of mouse and joystick details
+	std::vector<MouseDetails> m_mseDetails;
 	std::vector<JoyDetails> m_joyDetails;
 
 	// Current key state obtained from SDL
@@ -69,6 +80,11 @@ private:
 	int m_mouseZ;
 	short m_mouseWheelDir;
 	Uint8 m_mouseButtons;
+
+	// manymouse mice handles and states
+	std::vector<HANDLE> m_SDLMice;
+	SDLMseState m_combSDLMseState;
+	std::vector<SDLMseState> m_SDLMseStates;
 
 	// SDL2 ffb
 	SDL_HapticEffect eff;
@@ -141,6 +157,10 @@ protected:
 	void FrictionForceEffect(float force, int joyNum);
 
 	bool HasBasicForce(SDL_Haptic* hap);
+
+	bool ConfigMouseCentered();
+
+	CInputSource *CreateAnyMouseSource(EMousePart msePart);
 
 public:
 	/*

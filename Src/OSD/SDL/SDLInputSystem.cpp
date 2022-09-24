@@ -30,6 +30,7 @@
  */
 
 #include "SDLInputSystem.h"
+#include "../manymouse/manymouse.h"
 
 #include "Supermodel.h"
 #include "Inputs/Input.h"
@@ -177,7 +178,8 @@ CSDLInputSystem::CSDLInputSystem(const Util::Config::Node& config)
     m_mouseButtons(0),
     m_config(config)
 {
-  //
+  // Reset initial states
+  memset(&m_combSDLMseState, 0, sizeof(m_combSDLMseState));
 }
 
 CSDLInputSystem::~CSDLInputSystem()
@@ -394,6 +396,112 @@ void CSDLInputSystem::CloseJoysticks()
   m_SDLHapticDatas.clear();
 }
 
+static void manymouse_init_mice(void)
+{
+    LOGI << "Using ManyMouse for mice input.";
+    available_mice = ManyMouse_Init();
+    static Mouse mice[MAX_MICE];
+
+    if (available_mice > MAX_MICE)
+        available_mice = MAX_MICE;
+
+    if (available_mice <= 0) {
+        LOGW << "No mice detected!";
+    }
+    else
+    {
+        int i;
+        if (available_mice == 1) {
+            LOGI << "Only 1 mouse found.";
+        }
+        else
+        {
+            LOGI << fmt("Found %d mice devices:", available_mice);
+        }
+
+        for (i = 0; i < available_mice; i++)
+        {
+            const char *name = ManyMouse_DeviceName(i);
+            strncpy(mice[i].name, name, sizeof (mice[i].name));
+            mice[i].name[sizeof (mice[i].name) - 1] = '\0';
+            mice[i].connected = 1;
+            LOGI << fmt("#%d: %s", i, mice[i].name);
+        }
+        SDL_SetWindowGrab(video::get_window(), SDL_TRUE);
+    }
+
+    pMseState = &m_SDLMseStates[mm_event.device]
+}
+
+static void manymouse_update_mice()
+{
+while (ManyMouse_PollEvent(&mm_event))
+    {
+        Mouse *mouse;
+        if (mm_event.device >= (unsigned int) available_mice)
+            continue;
+
+        static Mouse mice[MAX_MICE];
+        mouse = &mice[mm_event.device];
+
+        if (mm_event.type == MANYMOUSE_EVENT_ABSMOTION)
+        {
+            
+            if (mm_event.item == 0)
+                //mouse->x = (val / maxval) * screen_w;
+                mouse->x = mm_event.value; 
+            else if (mm_event.item == 1)
+                //mouse->y = (val / maxval) * screen_h;
+                mouse->y = mm_event.value;
+
+            g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
+            break;
+        case MANYMOUSE_EVENT_ABSMOTION:
+
+            val = (float) (mm_event.value - mm_event.minval);
+            maxval = (float) (mm_event.maxval - mm_event.minval);
+
+            if (mm_event.item == 0)
+                mouse->x = (val / maxval) * video::get_video_width();
+            else if (mm_event.item == 1)
+                mouse->y = (val / maxval) * video::get_video_height();
+
+            g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
+            break;
+        case MANYMOUSE_EVENT_BUTTON:
+            if (mm_event.item < 32)
+            {
+                if (mm_event.value == 1)
+                {
+                    input_enable((Uint8)mouse_buttons_map[mm_event.item]);
+                    mouse->buttons |= (1 << mm_event.item);
+                }
+                else
+                {
+                    input_disable((Uint8)mouse_buttons_map[mm_event.item]);
+                    mouse->buttons &= ~(1 << mm_event.item);
+                }
+            }
+            break;
+        case MANYMOUSE_EVENT_SCROLL:
+            if (mm_event.item == 0)
+            {
+                if (mm_event.value > 0)
+                    input_disable(SWITCH_MOUSE_SCROLL_UP);
+                else
+                    input_disable(SWITCH_MOUSE_SCROLL_DOWN);
+            }
+            break;
+        case MANYMOUSE_EVENT_DISCONNECT:
+            mice[mm_event.device].connected = 0;
+            input_disable(SWITCH_MOUSE_DISCONNECT);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
 bool CSDLInputSystem::InitializeSystem()
 {
   // Make sure joystick subsystem is initialized and joystick events are enabled
@@ -437,24 +545,29 @@ bool CSDLInputSystem::IsKeyPressed(int kbdNum, int keyIndex)
 int CSDLInputSystem::GetMouseAxisValue(int mseNum, int axisNum)
 {
   // Return value for given mouse axis
+  SDLMseState *pMseState = (mseNum == ANY_MOUSE ? &m_combSDLMseState : &m_SDLMseStates[mseNum]);
   switch (axisNum)
   {
-    case AXIS_X: return m_mouseX;
-    case AXIS_Y: return m_mouseY;
-    case AXIS_Z: return m_mouseZ;
+    case AXIS_X: return pMseState->x;
+    case AXIS_Y: return pMseState->y;
+    case AXIS_Z: return pMseState->z;
     default:     return 0;
   }
 }
 
 int CSDLInputSystem::GetMouseWheelDir(int mseNum)
 {
-  // Return wheel value
-  return m_mouseWheelDir;
+  // For SDLInput, return the wheel value for combined or individual mouse state
+  return (mseNum == ANY_MOUSE ? m_combSDLMseState.wheelDir : m_SDLMseStates[mseNum].wheelDir);
 }
 
 bool CSDLInputSystem::IsMouseButPressed(int mseNum, int butNum)
 {
-  // Return value for given mouse button
+  {
+    // For SDLInput, return the button state for combined or individual mouse state
+    return !!((mseNum == ANY_MOUSE ? m_combSDLMseState.buttons : m_SDLMseStates[mseNum].buttons) & (1<<butNum));
+  }
+  /*// Return value for given mouse button
   switch (butNum)
   {
     case 0:  return !!(m_mouseButtons & SDL_BUTTON_LMASK);
@@ -463,7 +576,7 @@ bool CSDLInputSystem::IsMouseButPressed(int mseNum, int butNum)
     case 3:  return !!(m_mouseButtons & SDL_BUTTON_X1MASK);
     case 4:  return !!(m_mouseButtons & SDL_BUTTON_X2MASK);
     default: return false;
-  }
+  }*/
 }
 
 int CSDLInputSystem::GetJoyAxisValue(int joyNum, int axisNum)
@@ -550,8 +663,8 @@ int CSDLInputSystem::GetNumKeyboards()
 
 int CSDLInputSystem::GetNumMice()
 {
-  // Return ANY_MOUSE as SDL 1.2 cannot handle multiple mice
-  return ANY_MOUSE;
+  // Return details of given mouse
+  return m_SDLMice.size();
 }
 
 int CSDLInputSystem::GetNumJoysticks()
@@ -568,8 +681,8 @@ const KeyDetails *CSDLInputSystem::GetKeyDetails(int kbdNum)
 
 const MouseDetails *CSDLInputSystem::GetMouseDetails(int mseNum)
 {
-  // Return nullptr as SDL 1.2 cannot handle multiple mice
-  return nullptr;
+  // Return details of given mouse
+  return &m_mseDetails[mm_event.device];
 }
 
 const JoyDetails *CSDLInputSystem::GetJoyDetails(int joyNum)
