@@ -1988,6 +1988,8 @@ int main(int argc, char **argv)
     if (s_runtime_config["GrabCursor"].ValueAs<bool>())
         SDL_SetWindowGrab(s_window, SDL_TRUE);
   }
+  else if (selectedInputSystem == "manymouse")
+    InputSystem = new CMMInputSystem(s_runtime_config, s_window, true, false);
 #ifdef SUPERMODEL_WIN32
   else if (selectedInputSystem == "dinput")
     InputSystem = new CDirectInputSystem(s_runtime_config, s_window, false, false);
