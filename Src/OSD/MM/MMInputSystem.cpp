@@ -39,6 +39,8 @@
 #include <SDL.h>
 #include <SDL_syswm.h>
 
+#include "../manymouse/manymouse.h"
+
 /*
  * There seem to be three versions of XInput floating around, all of which
  * ought to provide the functionality we need. We try them all in sequence,
@@ -197,6 +199,110 @@ DIKeyMapStruct CMMInputSystem::s_keyMap[] =
 	//{ "EURO",				?? },
 	//{ "UNDO",				?? },
 };
+
+static void manymouse_init_mice(void)
+{
+    LOGI << "Using ManyMouse for mice input.";
+    available_mice = ManyMouse_Init();
+    static Mouse mice[MAX_MICE];
+
+    if (available_mice > MAX_MICE)
+        available_mice = MAX_MICE;
+
+    if (available_mice <= 0) {
+        LOGW << "No mice detected!";
+    }
+    else
+    {
+        int i;
+        if (available_mice == 1) {
+            LOGI << "Only 1 mouse found.";
+        }
+        else
+        {
+            LOGI << fmt("Found %d mice devices:", available_mice);
+        }
+
+        for (i = 0; i < available_mice; i++)
+        {
+            const char *name = ManyMouse_DeviceName(i);
+            strncpy(mice[i].name, name, sizeof (mice[i].name));
+            mice[i].name[sizeof (mice[i].name) - 1] = '\0';
+            mice[i].connected = 1;
+            LOGI << fmt("#%d: %s", i, mice[i].name);
+        }
+        SDL_SetWindowGrab(video::get_window(), SDL_TRUE);
+    }
+}
+
+static void manymouse_update_mice()
+{
+while (ManyMouse_PollEvent(&mm_event))
+    {
+        Mouse *mouse;
+        if (mm_event.device >= (unsigned int) available_mice)
+            continue;
+
+        static Mouse mice[MAX_MICE];
+        mouse = &mice[mm_event.device];
+
+        if (mm_event.type == MANYMOUSE_EVENT_ABSMOTION)
+        {
+            
+            if (mm_event.item == 0)
+                //mouse->x = (val / maxval) * screen_w;
+                mouse->x = mm_event.value; 
+            else if (mm_event.item == 1)
+                //mouse->y = (val / maxval) * screen_h;
+                mouse->y = mm_event.value;
+
+            g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
+            break;
+        case MANYMOUSE_EVENT_ABSMOTION:
+
+            val = (float) (mm_event.value - mm_event.minval);
+            maxval = (float) (mm_event.maxval - mm_event.minval);
+
+            if (mm_event.item == 0)
+                mouse->x = (val / maxval) * video::get_video_width();
+            else if (mm_event.item == 1)
+                mouse->y = (val / maxval) * video::get_video_height();
+
+            g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
+            break;
+        case MANYMOUSE_EVENT_BUTTON:
+            if (mm_event.item < 32)
+            {
+                if (mm_event.value == 1)
+                {
+                    input_enable((Uint8)mouse_buttons_map[mm_event.item]);
+                    mouse->buttons |= (1 << mm_event.item);
+                }
+                else
+                {
+                    input_disable((Uint8)mouse_buttons_map[mm_event.item]);
+                    mouse->buttons &= ~(1 << mm_event.item);
+                }
+            }
+            break;
+        case MANYMOUSE_EVENT_SCROLL:
+            if (mm_event.item == 0)
+            {
+                if (mm_event.value > 0)
+                    input_disable(SWITCH_MOUSE_SCROLL_UP);
+                else
+                    input_disable(SWITCH_MOUSE_SCROLL_DOWN);
+            }
+            break;
+        case MANYMOUSE_EVENT_DISCONNECT:
+            mice[mm_event.device].connected = 0;
+            input_disable(SWITCH_MOUSE_DISCONNECT);
+            break;
+        default:
+            break;
+        }
+    }
+}
 
 static bool IsXInputDevice(const GUID &devProdGUID)
 {
@@ -985,7 +1091,7 @@ void CMMInputSystem::ProcessRawInput(HRAWINPUT hInput)
 			{
 				if (m_rawMice[mseNum] == pData->header.hDevice)
 				{
-					pMseState = &m_rawMseStates[mseNum];
+					pMseState = &m_rawMseStates[mm_event.device];
 					break;
 				}
 			}
