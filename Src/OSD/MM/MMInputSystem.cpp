@@ -1783,7 +1783,7 @@ int CMMInputSystem::GetMouseAxisValue(int mseNum, int axisNum)
 		// For RawInput, get combined or individual mouse state and return value for given axis
 		// The cursor is always hidden when using RawInput, so it does not matter if these values don't match with the cursor (with multiple
 		// mice the cursor is irrelevant anyway)
-		RawMseState *pMseState = (mseNum == ANY_MOUSE ? &m_combRawMseState : &m_rawMseStates[mseNum]);
+		RawMseState *pMseState = (mseNum == ANY_MOUSE ? &m_combRawMseState : &m_rawMseStates[mm_event.device]);
 		switch (axisNum)
 		{
 			case AXIS_X: return pMseState->x;
@@ -1816,7 +1816,7 @@ int CMMInputSystem::GetMouseWheelDir(int mseNum)
 	if (m_useRawInput)
 	{
 		// For RawInput, return the wheel value for combined or individual mouse state
-		return (mseNum == ANY_MOUSE ? m_combRawMseState.wheelDir : m_rawMseStates[mseNum].wheelDir);
+		return (mseNum == ANY_MOUSE ? m_combRawMseState.wheelDir : m_rawMseStates[mm_event.device].wheelDir);
 	}
 
 	// For DirectInput just return the common wheel value
@@ -1828,7 +1828,7 @@ bool CMMInputSystem::IsMouseButPressed(int mseNum, int butNum)
 	if (m_useRawInput)
 	{
 		// For RawInput, return the button state for combined or individual mouse state
-		return !!((mseNum == ANY_MOUSE ? m_combRawMseState.buttons : m_rawMseStates[mseNum].buttons) & (1<<butNum));
+		return !!((mseNum == ANY_MOUSE ? m_combRawMseState.buttons : m_rawMseStates[mm_event.device].buttons) & (1<<butNum));
 	}
 	
 	// For DirectInput just return the common button state (taking care with the middle and right mouse buttons
@@ -2147,7 +2147,7 @@ const KeyDetails *CMMInputSystem::GetKeyDetails(int kbdNum)
 const MouseDetails *CMMInputSystem::GetMouseDetails(int mseNum)
 {
 	// If RawInput enabled, then return details of given mouse.  Otherwise, return NULL as DirectInput cannot handle multiple keyboards
-	return (m_useRawInput ? &m_mseDetails[mseNum] : NULL);
+	return (m_useRawInput ? &m_mseDetails[mm_event.device] : NULL);
 }
 
 const JoyDetails *CMMInputSystem::GetJoyDetails(int joyNum)
