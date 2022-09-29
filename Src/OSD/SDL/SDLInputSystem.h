@@ -115,6 +115,10 @@ private:
 	};
 	std::vector<hapticInfo> m_SDLHapticDatas;
 
+	bool GetRegString(HKEY regKey, const char *regPath, std::string &str);
+
+	bool GetRegDeviceName(const char *SDLDevName, char *name);
+
 	/*
 	 * Opens all attached joysticks.
 	 */
@@ -124,6 +128,20 @@ private:
 	 * Closes all attached joysticks.
 	 */
 	void CloseJoysticks();
+
+	void OpenKeyboardsAndMice();
+
+	void ActivateKeyboardsAndMice();
+
+	void PollKeyboardsAndMice();
+
+	void CloseKeyboardsAndMice();
+
+	void ResetMice();
+
+	void ProcessSDLInput(HSDLINPUT hInput);
+
+	
 
 protected:
 	/*
