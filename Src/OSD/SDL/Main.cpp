@@ -67,6 +67,7 @@
 #include "Util/NewConfig.h"
 #include "Util/ConfigBuilders.h"
 #include "GameLoader.h"
+#include "MMInputSystem.h"
 #include "SDLInputSystem.h"
 #include "SDLIncludes.h"
 #include "Debugger/SupermodelDebugger.h"
