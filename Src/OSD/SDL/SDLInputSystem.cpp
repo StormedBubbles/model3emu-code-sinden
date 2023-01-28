@@ -33,9 +33,15 @@
 
 #include "Supermodel.h"
 #include "Inputs/Input.h"
+#include "Libraries/manymouse/manymouse.h"
 
 #include <vector>
 using namespace std;
+
+static int available_mice = 0;
+static ManyMouseEvent mm_event;
+
+static int g_mouse_mode = SDL_MOUSE;
 
 SDLKeyMapStruct CSDLInputSystem::s_keyMap[] =
 {
@@ -178,6 +184,115 @@ CSDLInputSystem::CSDLInputSystem(const Util::Config::Node& config)
     m_config(config)
 {
   //
+}
+
+static void manymouse_init_mice(void)
+{
+    LOGI << "Using ManyMouse for mice input.";
+    available_mice = ManyMouse_Init();
+    static Mouse mice[MAX_MICE];
+
+    if (available_mice > MAX_MICE)
+        available_mice = MAX_MICE;
+
+    g_game->set_mice_detected(available_mice);
+
+    if (available_mice <= 0) {
+        LOGW << "No mice detected!";
+    }
+    else
+    {
+        int i;
+        if (available_mice == 1) {
+            LOGI << "Only 1 mouse found.";
+        }
+        else
+        {
+            LOGI << fmt("Found %d mice devices:", available_mice);
+        }
+
+        for (i = 0; i < available_mice; i++)
+        {
+            const char *name = ManyMouse_DeviceName(i);
+            strncpy(mice[i].name, name, sizeof (mice[i].name));
+            mice[i].name[sizeof (mice[i].name) - 1] = '\0';
+            mice[i].connected = 1;
+            LOGI << fmt("#%d: %s", i, mice[i].name);
+        }
+        SDL_SetWindowGrab(video::get_window(), SDL_TRUE);
+    }
+}
+
+static void manymouse_update_mice()
+{
+    while (ManyMouse_PollEvent(&mm_event))
+    {
+        Mouse *mouse;
+        if (mm_event.device >= (unsigned int) available_mice)
+            continue;
+
+        static Mouse mice[MAX_MICE];
+        mouse = &mice[mm_event.device];
+
+        switch(mm_event.type) {
+        case MANYMOUSE_EVENT_RELMOTION:
+            if (mm_event.item == 0)
+                mouse->x += mm_event.value;
+            else if (mm_event.item == 1)
+                mouse->y += mm_event.value;
+
+            if (mouse->x < 0) mouse->x = 0;
+            else if (mouse->x >= video::get_video_width()) mouse->x = video::get_video_width();
+
+            if (mouse->y < 0) mouse->y = 0;
+            else if (mouse->y >= video::get_video_height()) mouse->y = video::get_video_height();
+
+            g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
+            break;
+        case MANYMOUSE_EVENT_ABSMOTION:
+
+            val = (float) (mm_event.value - mm_event.minval);
+            maxval = (float) (mm_event.maxval - mm_event.minval);
+
+            if (mm_event.item == 0)
+                mouse->x = (val / maxval) * video::get_video_width();
+            else if (mm_event.item == 1)
+                mouse->y = (val / maxval) * video::get_video_height();
+
+            g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
+            break;
+        case MANYMOUSE_EVENT_BUTTON:
+            if (mm_event.item < 32)
+            {
+                if (mm_event.value == 1)
+                {
+                    input_enable((Uint8)mouse_buttons_map[mm_event.item], mm_event.device);
+                    mouse->buttons |= (1 << mm_event.item);
+                }
+                else
+                {
+                    input_disable((Uint8)mouse_buttons_map[mm_event.item], mm_event.device);
+                    mouse->buttons &= ~(1 << mm_event.item);
+                }
+            }
+            break;
+        case MANYMOUSE_EVENT_SCROLL:
+            if (mm_event.item == 0)
+            {
+                if (mm_event.value > 0)
+                    input_disable(SWITCH_MOUSE_SCROLL_UP, mm_event.device);
+                else
+                    input_disable(SWITCH_MOUSE_SCROLL_DOWN, mm_event.device);
+            }
+            break;
+        case MANYMOUSE_EVENT_DISCONNECT:
+            mice[mm_event.device].connected = 0;
+            input_disable(SWITCH_MOUSE_DISCONNECT, mm_event.device);
+            break;
+        default:
+            break;
+        }
+    }
 }
 
 CSDLInputSystem::~CSDLInputSystem()
@@ -550,7 +665,6 @@ int CSDLInputSystem::GetNumKeyboards()
 
 int CSDLInputSystem::GetNumMice()
 {
-  // Return ANY_MOUSE as SDL 1.2 cannot handle multiple mice
   return ANY_MOUSE;
 }
 
