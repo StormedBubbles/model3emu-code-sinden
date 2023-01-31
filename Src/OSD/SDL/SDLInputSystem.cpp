@@ -205,7 +205,7 @@ static void manymouse_init_mice(void)
             mice[i].name[sizeof (mice[i].name) - 1] = '\0';
             mice[i].connected = 1;
         }
-        SDL_SetWindowGrab(s_window, SDL_TRUE);
+        SDL_SetWindowGrab(SDL_Window, SDL_TRUE);
 }
 
 static void manymouse_update_mice()
@@ -221,7 +221,6 @@ static void manymouse_update_mice()
 
         float val, maxval;
 	extern int actualWidth, actualHeight;
-	extern SDL_Window *s_window
 
         switch(mm_event.type) {
         case MANYMOUSE_EVENT_RELMOTION:
