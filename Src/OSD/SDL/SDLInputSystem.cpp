@@ -212,11 +212,11 @@ static void manymouse_update_mice()
 {
     while (ManyMouse_PollEvent(&mm_event))
     {
-        Mouse *mouse;
+        enum EMousePart mouse;
         if (mm_event.device >= (unsigned int) available_mice)
             continue;
 
-        static Mouse mice[MAX_MICE];
+        static enum EMousePart mice[MAX_MICE];
         mouse = &mice[mm_event.device];
 
         float val, maxval;
@@ -225,17 +225,17 @@ static void manymouse_update_mice()
         switch(mm_event.type) {
         case MANYMOUSE_EVENT_RELMOTION:
             if (mm_event.item == 0)
-                mouse->x += mm_event.value;
+                mouse->MouseXAxis += mm_event.value;
             else if (mm_event.item == 1)
-                mouse->y += mm_event.value;
+                mouse->MouseYAxis += mm_event.value;
 
             if (mouse->x < 0) mouse->x = 0;
-            else if (mouse->x >= actualWidth) mouse->x = actualWidth;
+            else if (mouse->MouseXAxis >= actualWidth) mouse->MouseXAxis = actualWidth;
 
             if (mouse->y < 0) mouse->y = 0;
-            else if (mouse->y >= actualHeight) mouse->y = actualHeight;
+            else if (mouse->MouseYAxis >= actualHeight) mouse->MouseYAxis = actualHeight;
 
-            g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
+            g_game->OnMouseMotion(mouse->MouseXAxis, mouse->MouseYAxis, mouse->relx, mouse->rely, mm_event.device);
             break;
         case MANYMOUSE_EVENT_ABSMOTION:
 
@@ -243,9 +243,9 @@ static void manymouse_update_mice()
             maxval = (float) (mm_event.maxval - mm_event.minval);
 
             if (mm_event.item == 0)
-                mouse->x = (val / maxval) * actualWidth;
+                mouse->MouseXAxis = (val / maxval) * actualWidth;
             else if (mm_event.item == 1)
-                mouse->y = (val / maxval) * actualHeight;
+                mouse->MouseYAxis = (val / maxval) * actualHeight;
 
             g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
             break;
