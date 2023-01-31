@@ -197,6 +197,7 @@ static void manymouse_init_mice(void)
 
     g_game->set_mice_detected(available_mice);
 
+	int i;
         for (i = 0; i < available_mice; i++)
         {
             const char *name = ManyMouse_DeviceName(i);
@@ -205,7 +206,6 @@ static void manymouse_init_mice(void)
             mice[i].connected = 1;
         }
         SDL_SetWindowGrab(video::get_window(), SDL_TRUE);
-    }
 }
 
 static void manymouse_update_mice()
