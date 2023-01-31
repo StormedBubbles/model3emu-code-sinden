@@ -205,7 +205,7 @@ static void manymouse_init_mice(void)
             mice[i].name[sizeof (mice[i].name) - 1] = '\0';
             mice[i].connected = 1;
         }
-        SDL_SetWindowGrab(video::get_window(), SDL_TRUE);
+        SDL_SetWindowGrab(s_window, SDL_TRUE);
 }
 
 static void manymouse_update_mice()
