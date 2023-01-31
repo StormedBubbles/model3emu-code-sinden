@@ -219,6 +219,8 @@ static void manymouse_update_mice()
         static Mouse mice[MAX_MICE];
         mouse = &mice[mm_event.device];
 
+        float val, maxval;
+
         switch(mm_event.type) {
         case MANYMOUSE_EVENT_RELMOTION:
             if (mm_event.item == 0)
