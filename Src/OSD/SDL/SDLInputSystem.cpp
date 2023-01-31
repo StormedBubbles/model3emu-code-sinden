@@ -35,13 +35,13 @@
 #include "Inputs/Input.h"
 #include "../Libraries/manymouse/manymouse.h"
 
+#define MAX_MICE 32
+
 #include <vector>
 using namespace std;
 
 static int available_mice = 0;
 static ManyMouseEvent mm_event;
-
-static int g_mouse_mode = SDL_MOUSE;
 
 SDLKeyMapStruct CSDLInputSystem::s_keyMap[] =
 {
@@ -188,7 +188,7 @@ CSDLInputSystem::CSDLInputSystem(const Util::Config::Node& config)
 
 static void manymouse_init_mice(void)
 {
-    LOGI << "Using ManyMouse for mice input.";
+    //LOGI << "Using ManyMouse for mice input.";
     available_mice = ManyMouse_Init();
     static Mouse mice[MAX_MICE];
 
@@ -197,27 +197,12 @@ static void manymouse_init_mice(void)
 
     g_game->set_mice_detected(available_mice);
 
-    if (available_mice <= 0) {
-        LOGW << "No mice detected!";
-    }
-    else
-    {
-        int i;
-        if (available_mice == 1) {
-            LOGI << "Only 1 mouse found.";
-        }
-        else
-        {
-            LOGI << fmt("Found %d mice devices:", available_mice);
-        }
-
         for (i = 0; i < available_mice; i++)
         {
             const char *name = ManyMouse_DeviceName(i);
             strncpy(mice[i].name, name, sizeof (mice[i].name));
             mice[i].name[sizeof (mice[i].name) - 1] = '\0';
             mice[i].connected = 1;
-            LOGI << fmt("#%d: %s", i, mice[i].name);
         }
         SDL_SetWindowGrab(video::get_window(), SDL_TRUE);
     }
