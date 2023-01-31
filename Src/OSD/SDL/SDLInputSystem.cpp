@@ -682,8 +682,7 @@ const KeyDetails *CSDLInputSystem::GetKeyDetails(int kbdNum)
 
 const MouseDetails *CSDLInputSystem::GetMouseDetails(int mseNum)
 {
-  // Return nullptr as SDL 1.2 cannot handle multiple mice
-  return nullptr;
+  return &m_mseDetails[mseNum];
 }
 
 const JoyDetails *CSDLInputSystem::GetJoyDetails(int joyNum)
