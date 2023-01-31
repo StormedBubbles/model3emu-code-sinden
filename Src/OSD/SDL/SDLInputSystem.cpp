@@ -665,7 +665,7 @@ int CSDLInputSystem::GetNumKeyboards()
 
 int CSDLInputSystem::GetNumMice()
 {
-  return ANY_MOUSE;
+  return available_mice;
 }
 
 int CSDLInputSystem::GetNumJoysticks()
