@@ -33,7 +33,7 @@
 
 #include "Supermodel.h"
 #include "Inputs/Input.h"
-#include "Libraries/manymouse/manymouse.h"
+#include "../Libraries/manymouse/manymouse.h"
 
 #include <vector>
 using namespace std;
