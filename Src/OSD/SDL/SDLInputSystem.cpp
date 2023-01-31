@@ -220,6 +220,8 @@ static void manymouse_update_mice()
         mouse = &mice[mm_event.device];
 
         float val, maxval;
+	extern int actualWidth, actualHeight;
+	extern SDL_Window *s_window
 
         switch(mm_event.type) {
         case MANYMOUSE_EVENT_RELMOTION:
