@@ -227,10 +227,10 @@ static void manymouse_update_mice()
                 mouse->y += mm_event.value;
 
             if (mouse->x < 0) mouse->x = 0;
-            else if (mouse->x >= video::get_video_width()) mouse->x = video::get_video_width();
+            else if (mouse->x >= actualWidth) mouse->x = actualWidth;
 
             if (mouse->y < 0) mouse->y = 0;
-            else if (mouse->y >= video::get_video_height()) mouse->y = video::get_video_height();
+            else if (mouse->y >= actualHeight) mouse->y = actualHeight;
 
             g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
             break;
@@ -240,9 +240,9 @@ static void manymouse_update_mice()
             maxval = (float) (mm_event.maxval - mm_event.minval);
 
             if (mm_event.item == 0)
-                mouse->x = (val / maxval) * video::get_video_width();
+                mouse->x = (val / maxval) * actualWidth;
             else if (mm_event.item == 1)
-                mouse->y = (val / maxval) * video::get_video_height();
+                mouse->y = (val / maxval) * actualHeight;
 
             g_game->OnMouseMotion(mouse->x, mouse->y, mouse->relx, mouse->rely, mm_event.device);
             break;
